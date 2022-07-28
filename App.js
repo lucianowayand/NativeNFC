@@ -1,17 +1,19 @@
-import React from "react";
-import { View, Text, Button, TextInput } from "react-native";
+import React, { useState } from "react";
+import { View, Text, Button, TextInput, Modal } from "react-native";
 import NfcManager, { NfcTech } from 'react-native-nfc-manager';
 
 NfcManager.start();
 
 export default function App() {
-  
-  async function writeNdef(){
+  const [text, setText] = useState("")
+  const [modalVisibility, setModalVisibility] = useState(false)
+
+  async function writeNdef() {
     try {
+      Platform.OS === 'ios' ? null : setModalVisibility(true);
       let tech = Platform.OS === 'ios' ? NfcTech.MifareIOS : NfcTech.NfcA;
       let resp = await NfcManager.requestTechnology(tech);
 
-      let text = "asdalsdkaslpdkad";
       let fullLength = text.length + 7;
       let payloadLength = text.length + 3;
 
@@ -23,30 +25,32 @@ export default function App() {
       let currentPage = 6;
       let currentPayload = [0xA2, currentPage, 0x6E];
 
-      for(let i=0; i<text.length; i++){
-          currentPayload.push(text.charCodeAt(i));
-          if (currentPayload.length == 6){
-              resp = await cmd(currentPayload);
-              currentPage += 1;
-              currentPayload = [0xA2, currentPage];
-          }
+      for (let i = 0; i < text.length; i++) {
+        currentPayload.push(text.charCodeAt(i));
+        if (currentPayload.length == 6) {
+          resp = await cmd(currentPayload);
+          currentPage += 1;
+          currentPayload = [0xA2, currentPage];
+        }
       }
 
       currentPayload.push(254);
-      while(currentPayload.length < 6){
-          currentPayload.push(0);
+      while (currentPayload.length < 6) {
+        currentPayload.push(0);
       }
 
       resp = await cmd(currentPayload);
       console.log(resp)
 
-    } catch(error){
+    } catch (error) {
       console.warn("Oops!", error)
+    } finally {
+      Platform.OS === 'ios' ? null : setModalVisibility(false);
     }
   }
-
-  async function readNdef(){
+  async function readNdef() {
     try {
+      Platform.OS === 'ios' ? null : setModalVisibility(true);
       let tech = Platform.OS === 'ios' ? NfcTech.MifareIOS : NfcTech.NfcA;
       let resp = await NfcManager.requestTechnology(tech);
 
@@ -62,42 +66,67 @@ export default function App() {
       bytes = resp.toString().split(",");
       let text = "";
 
-      for(let i=0; i<bytes.length; i++){
-          if (i < 5){
-              continue;
-          }
-          if (parseInt(bytes[i]) === 254){
-              break;
-          }
-          text = text + String.fromCharCode(parseInt(bytes[i]));
+      for (let i = 0; i < bytes.length; i++) {
+        if (i < 5) {
+          continue;
+        }
+        if (parseInt(bytes[i]) === 254) {
+          break;
+        }
+        text = text + String.fromCharCode(parseInt(bytes[i]));
       }
       console.warn(text)
-  } catch (error) {
-    console.warn("Oops!", error)
+    } catch (error) {
+      console.warn("Oops!", error)
+    } finally {
+      Platform.OS === 'ios' ? null : setModalVisibility(false);
+    }
   }
-}
-  
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <Modal visible={modalVisibility} transparent={true}>
+        <View style={{
+          flex:1,
+          justifyContent:'center',
+          alignItems:'center',
+        }}>
+          <View style={{
+            flex:1,
+            justifyContent:'center',
+            alignItems:'center',
+            backgroundColor:'white',
+            width:200,
+            margin:320,
+            borderRadius:5
+            }}>
+            <Text>Aguardando a leitura</Text>
+            <Text>da TAG NFC</Text>
+          </View>
+        </View>
+      </Modal>
       <View>
-        <Text style={{padding:20, fontSize:22}}>Write on an NFC TAG</Text>
-        <TextInput 
-          style={{borderColor:'black', borderWidth:1, borderRadius:5}}
-          maxLength={20} 
+        <Text style={{ padding: 20, fontSize: 22 }}>Write on an NFC TAG</Text>
+        <TextInput
+          style={{ borderColor: 'black', borderWidth: 1, borderRadius: 5 }}
+          maxLength={20}
+          onChangeText={(string) => {
+            setText(string)
+          }}
+          value={text}
         />
-        <View style={{paddingTop:20, display:'flex', alignItems:'center'}}>
-          <View style={{width:225}}>
-            <Button title="Write" onPress={writeNdef}/>
+        <View style={{ paddingTop: 20, display: 'flex', alignItems: 'center' }}>
+          <View style={{ width: 225 }}>
+            <Button title="Write" onPress={writeNdef} />
           </View>
         </View>
       </View>
       <View>
-        <Text style={{padding:20, fontSize:22}}>Scan an NFC TAG</Text>
-        <Button title="Read" onPress={readNdef}/>
+        <Text style={{ padding: 20, fontSize: 22 }}>Scan an NFC TAG</Text>
+        <Button title="Read" onPress={readNdef} />
       </View>
     </View>
-    
+
   );
 };
 
