@@ -106,7 +106,7 @@ export default function App() {
         </View>
       </Modal>
       <View>
-        <Text style={{ padding: 20, fontSize: 22 }}>Write on an NFC TAG</Text>
+        <Text style={{ padding: 20, fontSize: 22 }}>Write on the NFC TAG</Text>
         <TextInput
           style={{ borderColor: 'black', borderWidth: 1, borderRadius: 5 }}
           maxLength={20}
